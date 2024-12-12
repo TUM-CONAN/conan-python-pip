@@ -17,7 +17,7 @@ class PythonPipConan(ConanFile):
     license = "MIT"
     description = "High productivity build system"
 
-    settings = "os", "compiler", "build_type", "arch"
+    settings = "os", "arch"
 
     options = { 
         "python": ["ANY"],

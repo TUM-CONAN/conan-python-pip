@@ -50,7 +50,7 @@ class PythonPipConan(ConanFile):
         return self._python_exec
 
 
-    def requirements(self):
+    def build_requirements(self):
         if not self.options.with_system_python:
             self.requires("cpython/[~{}]".format(self.options.python_version))
 
@@ -75,7 +75,7 @@ class PythonPipConan(ConanFile):
         self.run('{0} {1} --prefix={2}'.format(self.active_python_exec, os.path.join(self.source_folder, "get-pip.py"), self.package_folder), env=["py_env_file"])
 
     def package(self):
-        pass
+        os.makedirs(os.path.join(self.package_folder, "include"))
 
     def package_info(self):
         self.runenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self.pyver}", "site-packages"))

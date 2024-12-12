@@ -1,28 +1,83 @@
 import os
 
-from conans import ConanFile, tools
+from conan import ConanFile
+from conan.tools.files import copy, get, chdir, download
+from conan.tools.layout import basic_layout
+from conan.tools.env import Environment
+
+required_conan_version = ">=1.52.0"
 
 
 class PythonPipConan(ConanFile):
+    python_requires = "camp_common/0.5@camposs/stable"
+    python_requires_extend = "camp_common.CampPythonBase"
+
     name = "python-pip"
-    version = tools.get_env("GIT_TAG", "19.2.3")
+    version = "24.3.1"
     license = "MIT"
     description = "High productivity build system"
+
     settings = "os", "compiler", "build_type", "arch"
 
-    def source(self):
-        tools.get("https://github.com/pypa/pip/archive/%s.tar.gz" % self.version)
+    options = { 
+        "python": ["ANY"],
+        "python_version": [None, "3.12", ],
+        "with_system_python": [True, False],
+    }
 
-    def build_requirements(self):
-        self.build_requires("generators/1.0.0@camposs/stable")
-        self.build_requires("python-setuptools/[>=41.2.0]@camposs/stable")
+    default_options = {
+        "python": "python3",
+        "python_version": "3.12",
+        "with_system_python": False,
+    }
+
+    @property
+    def pyver(self):
+        pyver = self.options.python_version
+        if self.options.with_system_python:
+            pyver = ".".join(self._python_version.split(".")[1:2])
+        return pyver
+
+    @property
+    def python_lib_path(self):
+        return os.path.join(self.package_folder, "lib", f"python{self.pyver}", "site-packages")
+    
+    @property
+    def active_python_exec(self):
+        if not self.options.with_system_python:
+            cpython = self.dependencies["cpython"]
+            return os.path.join(cpython.package_folder, "bin", "python")
+        return self._python_exec
+
 
     def requirements(self):
-        self.requires("python/[>=3.8.2]@camposs/stable")
+        if not self.options.with_system_python:
+            self.requires("cpython/[~{}]".format(self.options.python_version))
+
+    def layout(self):
+        basic_layout(self, src_folder="src")
+
+    def generate(self):
+        env1 = Environment()
+        env1.define("PYTHONPATH", self.python_lib_path)
+        envvars = env1.vars(self)
+        envvars.save_script("py_env_file")
+
+    def package_id(self):
+        self.info.clear()
+
+    def source(self):
+        download(self, "https://bootstrap.pypa.io/get-pip.py", "get-pip.py")
 
     def build(self):
-        with tools.chdir("pip-" + self.version):
-            self.run('python setup.py install --optimize=1 --prefix= --root="%s"' % self.package_folder)
+        if not os.path.isdir(self.python_lib_path):
+            os.makedirs(self.python_lib_path)
+        self.run('{0} {1} --prefix={2}'.format(self.active_python_exec, os.path.join(self.source_folder, "get-pip.py"), self.package_folder), env=["py_env_file"])
+
+    def package(self):
+        pass
 
     def package_info(self):
-        self.env_info.PYTHONPATH.append(os.path.join(self.package_folder, "lib", "python3.8", "site-packages"))
+        self.runenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self.pyver}", "site-packages"))
+
+

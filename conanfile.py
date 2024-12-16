@@ -33,10 +33,6 @@ class PythonPipConan(ConanFile):
         "with_system_python": False,
     }
 
-    @property
-    def python_lib_path(self):
-        return os.path.join(self.package_folder, "lib", f"python{self._python_version}", "site-packages")
-    
     def build_requirements(self):
         if not self.options.with_system_python:
             self.requires("cpython/[~{}]".format(self.options.python_version))
@@ -46,7 +42,7 @@ class PythonPipConan(ConanFile):
 
     def generate(self):
         env1 = Environment()
-        env1.define("PYTHONPATH", self.python_lib_path)
+        env1.define("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self._python_version}", "site-packages"))
         envvars = env1.vars(self)
         envvars.save_script("py_env_file")
 
@@ -57,10 +53,7 @@ class PythonPipConan(ConanFile):
         download(self, "https://bootstrap.pypa.io/get-pip.py", "get-pip.py")
 
     def build(self):
-        if not os.path.isdir(self.python_lib_path):
-            os.makedirs(self.python_lib_path)
         self.run('{0} {1} --prefix={2}'.format(self._python_exec, os.path.join(self.source_folder, "get-pip.py"), self.package_folder), env=["py_env_file"])
-
 
     def package_info(self):
         self.runenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self._python_version}", "site-packages"))

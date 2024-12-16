@@ -23,7 +23,7 @@ class PythonPipConan(ConanFile):
 
     def build_requirements(self):
         if self._use_custom_python:
-            self.requires("cpython/[~{}]".format(self._python_version))
+            self.requires("cpython/[~{}]@camposs/stable".format(self._python_version))
 
     def layout(self):
         basic_layout(self, src_folder="src")

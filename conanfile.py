@@ -12,6 +12,8 @@ class PythonPipConan(ConanFile):
     python_requires = "camp_common/0.5@camposs/stable"
     python_requires_extend = "camp_common.CampPythonBase"
 
+    package_type = 'application'
+
     name = "python-pip"
     version = "24.3.1"
     license = "MIT"
@@ -32,24 +34,9 @@ class PythonPipConan(ConanFile):
     }
 
     @property
-    def pyver(self):
-        pyver = self.options.python_version
-        if self.options.with_system_python:
-            pyver = ".".join(self._python_version.split(".")[1:2])
-        return pyver
-
-    @property
     def python_lib_path(self):
-        return os.path.join(self.package_folder, "lib", f"python{self.pyver}", "site-packages")
+        return os.path.join(self.package_folder, "lib", f"python{self._python_version}", "site-packages")
     
-    @property
-    def active_python_exec(self):
-        if not self.options.with_system_python:
-            cpython = self.dependencies["cpython"]
-            return os.path.join(cpython.package_folder, "bin", "python")
-        return self._python_exec
-
-
     def build_requirements(self):
         if not self.options.with_system_python:
             self.requires("cpython/[~{}]".format(self.options.python_version))
@@ -72,13 +59,11 @@ class PythonPipConan(ConanFile):
     def build(self):
         if not os.path.isdir(self.python_lib_path):
             os.makedirs(self.python_lib_path)
-        self.run('{0} {1} --prefix={2}'.format(self.active_python_exec, os.path.join(self.source_folder, "get-pip.py"), self.package_folder), env=["py_env_file"])
+        self.run('{0} {1} --prefix={2}'.format(self._python_exec, os.path.join(self.source_folder, "get-pip.py"), self.package_folder), env=["py_env_file"])
 
-    def package(self):
-        os.makedirs(os.path.join(self.package_folder, "include"))
 
     def package_info(self):
-        self.runenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self.pyver}", "site-packages"))
-        self.buildenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self.pyver}", "site-packages"))
+        self.runenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self._python_version}", "site-packages"))
+        self.buildenv_info.append_path("PYTHONPATH", os.path.join(self.package_folder, "lib", f"python{self._python_version}", "site-packages"))
 
 

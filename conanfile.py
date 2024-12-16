@@ -21,21 +21,9 @@ class PythonPipConan(ConanFile):
 
     settings = "os", "arch"
 
-    options = { 
-        "python": ["ANY"],
-        "python_version": [None, "3.12", ],
-        "with_system_python": [True, False],
-    }
-
-    default_options = {
-        "python": "python3",
-        "python_version": "3.12",
-        "with_system_python": False,
-    }
-
     def build_requirements(self):
-        if not self.options.with_system_python:
-            self.requires("cpython/[~{}]".format(self.options.python_version))
+        if self._use_custom_python:
+            self.requires("cpython/[~{}]".format(self._python_version))
 
     def layout(self):
         basic_layout(self, src_folder="src")
